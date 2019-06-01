@@ -12,7 +12,7 @@ struct node {
     ui freq;
     node *left, *right;
 
-    node(char value, ui freq) {
+    node(unsigned char value, ui freq) {
         left = nullptr;
         right = nullptr;
         this->value = value;
@@ -24,17 +24,24 @@ struct node {
     }
 };
 
-//struct nnode {
-//    node *root;
-//
-//    nnode(node *root) : root(root) {}
-//
-//    ~nnode() {
-//        delete(root->left);
-//        delete(root->right);
-//        delete(root);
-//    }
-//};
+void deleteNode(node *node) {
+    if (!node) {
+        return;
+    }
+    deleteNode(node->left);
+    deleteNode(node->right);
+    delete node;
+}
+
+struct node_wrapper {
+    node *root;
+
+    explicit node_wrapper(node *root) : root(root) {}
+
+    ~node_wrapper() {
+        deleteNode(root);
+    }
+};
 
 struct code {
     ui size_;
@@ -64,7 +71,7 @@ struct code {
     }
 
     bool get(ui j) {
-        return ((value_ >> j) & 1u);
+        return static_cast<bool>((value_ >> j) & 1u);
     }
 
     void add(code &code) {
@@ -94,8 +101,11 @@ void get_codes(struct node *root, const code &cur_code, std::vector<code> &codes
 
 void build_huffman_tree(std::priority_queue<node *, std::vector<node *>,
         decltype(compare)> &build, ui *freq) {
-    for (ui i = 0; i < 256; i++) {
+    for (unsigned char i = 0;; i++) {
         build.push(new node(i, freq[i]));
+        if (i == 255) {
+            break;
+        }
     }
     while (build.size() > 1) {
         node *left = build.top();
@@ -112,7 +122,8 @@ void build_huffman_tree(std::priority_queue<node *, std::vector<node *>,
 void gen_codes(ui *freq, std::vector<code> &codes) {
     std::priority_queue<node *, std::vector<node *>, decltype(compare)> build(compare);
     build_huffman_tree(build, freq);
-    get_codes(build.top(), code(), codes);
+    node_wrapper root = node_wrapper(build.top());
+    get_codes(root.root, code(), codes);
 }
 
 void get_freq(buffered_reader &in, ui *freq) {
@@ -132,7 +143,7 @@ code print_full_chars_from_code(code c, buffered_writer &out) {
             return {new_size, new_val};
         } else {
             ui byte = (value >> (size - 8 * (i + 1)));
-            unsigned char ch = byte & 0xffu;
+            auto ch = static_cast<unsigned char>(byte & 0xffu);
             out.write_char(ch);
         }
     }
@@ -141,7 +152,7 @@ code print_full_chars_from_code(code c, buffered_writer &out) {
 
 void print_number(ui n, buffered_writer &out) {
     for (ui i = 4; i-- > 0;) {
-        out.write_char((n >> (8u * i)) & 0xffu);
+        out.write_char(static_cast<const unsigned char &>((n >> (8u * i)) & 0xffu));
     }
 }
 
@@ -165,7 +176,7 @@ void encode(std::istream &input, std::ostream &output) {
         last_bits += codes[c].size();
         last_bits %= 8;
     }
-    out.write_char(last_bits);
+    out.write_char(static_cast<const unsigned char &>(last_bits));
     in.reset();
     code cur_code, rest;
     while (in.read_char(c)) {
@@ -174,7 +185,7 @@ void encode(std::istream &input, std::ostream &output) {
         cur_code = rest;
     }
     if (cur_code.size() > 0) {
-        out.write_char(cur_code.value());
+        out.write_char(static_cast<const unsigned char &>(cur_code.value()));
     }
     in.reset();
 }
@@ -232,7 +243,8 @@ void decode(std::istream &input, std::ostream &output) {
     }
     std::priority_queue<node *, std::vector<node *>, decltype(compare)> build(compare);
     build_huffman_tree(build, freq);
-    node *root = build.top();
+    node_wrapper root_wrapper = node_wrapper(build.top());
+    node *root = root_wrapper.root;
 
     buffered_writer out(output);
     ui res_freq[256];

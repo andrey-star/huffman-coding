@@ -67,7 +67,7 @@ TEST(correctness, two) {
 }
 
 TEST(correctness, three) {
-    std::string s = "h7";
+    std::string s = "h7-";
     EXPECT_EQ(s, encode_decode(s));
 }
 
@@ -76,7 +76,7 @@ TEST(correctness, other_ascii) {
     EXPECT_EQ(s, encode_decode(s));
 }
 
-TEST(correctness, short_words) {
+TEST(correctness, short_string) {
     std::string s = "jhgjk";
     EXPECT_EQ(s, encode_decode(s));
     std::string t = "fmgfvbhuy";
@@ -85,7 +85,7 @@ TEST(correctness, short_words) {
     EXPECT_EQ(h, encode_decode(h));
 }
 
-TEST(correctness, long_words) {
+TEST(correctness, long_string) {
     std::string t = "123456'''/.,mbvcx]9765rdhj6tfg";
     EXPECT_EQ(t, encode_decode(t));
 
@@ -116,6 +116,7 @@ TEST(correctness, long_words) {
 //    destination.open("output.txt", std::ios::binary);
 //    encode_decode(source, destination);
 //}
+
 
 TEST(correctness, random_strings_test) {
     static constexpr std::size_t MAX_LENGTH = 100;
