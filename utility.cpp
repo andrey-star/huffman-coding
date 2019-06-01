@@ -1,9 +1,8 @@
+#include <string>
 #include <iostream>
 #include <fstream>
-#include <string>
 #include <ctime>
 #include <iomanip>
-#include <vector>
 #include "huffman.h"
 
 int main(int argc, char **argv) {
