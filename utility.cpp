@@ -16,23 +16,28 @@ int main(int argc, char **argv) {
     std::string src_path = argv[2];
     std::string dest_path = argv[3];
 
-    std::ifstream source;
-    std::ofstream destination;
-    source.open(src_path, std::ios::binary);
-    destination.open(dest_path, std::ios::binary);
+    std::ifstream src;
+    std::ofstream dest;
+    src.open(src_path, std::ios::binary);
+    dest.open(dest_path, std::ios::binary);
 
     std::clock_t start = clock();
+    if (!src) {
+        std::cerr << "Missing input file: " << src_path << "\n";
+        return -1;
+    }
     if (cmd == "-c") {
-        encode(source, destination);
+        encode(src, dest);
     } else if (cmd == "-d"){
         try {
-            decode(source, destination);
-        }catch (std::logic_error &e) {
+            decode(src, dest);
+        } catch (std::logic_error &e) {
             std::cerr << e.what() << "\n";
+            return -1;
         }
     }
-
-    std::cerr << std::setprecision(3) << 1.0 * (clock() - start) / CLOCKS_PER_SEC << " s" << "\n";
+    std::cerr << "Finished in: " << std::setprecision(3) << 1.0 * (clock() - start) / CLOCKS_PER_SEC << " s" << "\n";
+    return 0;
 }
 
 
