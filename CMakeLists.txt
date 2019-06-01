@@ -19,12 +19,12 @@ add_library(huffman-lib STATIC
         huffman.h
         huffman.cpp)
 
-add_executable(compression-testing tests.cpp
+add_executable(huffman-testing tests.cpp
         gtest/gtest-all.cc
         gtest/gtest.h
         gtest/gtest_main.cc)
 
-target_link_libraries(compression-testing huffman-lib -lpthread)
+target_link_libraries(huffman-testing huffman-lib -lpthread)
 
-add_executable(compression-utility utility.cpp)
-target_link_libraries(compression-utility huffman-lib)
+add_executable(huffman-utility utility.cpp)
+target_link_libraries(huffman-utility huffman-lib)
