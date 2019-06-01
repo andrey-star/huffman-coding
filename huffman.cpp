@@ -1,13 +1,9 @@
+#include "huffman.h"
+
 #include <queue>
 #include <stdint.h>
 
-#include <buffered_io/buffered_reader.h>
-#include <buffered_io/buffered_writer.h>
-
-typedef uint32_t ui;
-
-
-struct node {
+struct huffman::node {
     unsigned char value;
     ui freq;
     node *left, *right;
@@ -24,7 +20,7 @@ struct node {
     }
 };
 
-void deleteNode(node *node) {
+void huffman::deleteNode(huffman::node *node) {
     if (!node) {
         return;
     }
@@ -33,17 +29,17 @@ void deleteNode(node *node) {
     delete node;
 }
 
-struct node_wrapper {
+struct huffman::node_wrapper {
     node *root;
 
-    explicit node_wrapper(node *root) : root(root) {}
+    explicit node_wrapper(huffman::node *root) : root(root) {}
 
     ~node_wrapper() {
         deleteNode(root);
     }
 };
 
-struct code {
+struct huffman::code {
     ui size_;
     ui value_;
 
@@ -82,11 +78,13 @@ struct code {
 
 };
 
-auto compare = [](node *l, node *r) {
-    return l->freq > r->freq;
+struct huffman::compare {
+    bool operator()(node *l, node *r) {
+        return (l->freq > r->freq);
+    }
 };
 
-void get_codes(struct node *root, const code &cur_code, std::vector<code> &codes) {
+void huffman::get_codes(node *root, const code &cur_code, std::vector<code> &codes) {
     if (root->isLeaf()) {
         codes[root->value] = cur_code;
         return;
@@ -99,10 +97,10 @@ void get_codes(struct node *root, const code &cur_code, std::vector<code> &codes
     get_codes(root->right, right, codes);
 }
 
-void build_huffman_tree(std::priority_queue<node *, std::vector<node *>,
-        decltype(compare)> &build, ui *freq) {
+void huffman::build_huffman_tree(std::priority_queue<node *, std::vector<huffman::node *>,
+        compare> &build, ui *freq) {
     for (unsigned char i = 0;; i++) {
-        build.push(new node(i, freq[i]));
+        build.push(new huffman::node(i, freq[i]));
         if (i == 255) {
             break;
         }
@@ -112,15 +110,15 @@ void build_huffman_tree(std::priority_queue<node *, std::vector<node *>,
         build.pop();
         node *right = build.top();
         build.pop();
-        node *parent = new node('\0', left->freq + right->freq);
+        node *parent = new huffman::node('\0', left->freq + right->freq);
         parent->left = left;
         parent->right = right;
         build.push(parent);
     }
 }
 
-void gen_codes(ui *freq, std::vector<code> &codes) {
-    std::priority_queue<node *, std::vector<node *>, decltype(compare)> build(compare);
+void huffman::gen_codes(ui *freq, std::vector<code> &codes) {
+    std::priority_queue<huffman::node *, std::vector<huffman::node *>, compare> build;
     build_huffman_tree(build, freq);
     node_wrapper root = node_wrapper(build.top());
     get_codes(root.root, code(), codes);
@@ -133,7 +131,7 @@ void get_freq(buffered_reader &in, ui *freq) {
     }
 }
 
-code print_full_chars_from_code(code c, buffered_writer &out) {
+huffman::code huffman::print_full_chars_from_code(code c, buffered_writer &out) {
     ui value = c.value();
     ui size = c.size();
     for (ui i = 0; i < size; i++) {
@@ -156,7 +154,7 @@ void print_number(ui n, buffered_writer &out) {
     }
 }
 
-void encode(std::istream &input, std::ostream &output) {
+void huffman::encode(std::istream &input, std::ostream &output) {
     ui freq[256];
     for (ui &i : freq) {
         i = 0;
@@ -190,6 +188,7 @@ void encode(std::istream &input, std::ostream &output) {
     in.reset();
 }
 
+
 ui read_number(buffered_reader &in) {
     ui res = 0;
     unsigned char c;
@@ -203,7 +202,7 @@ ui read_number(buffered_reader &in) {
     return res;
 }
 
-void process_code(node *&cur_node, node *&root, code &code, buffered_writer &out, ui *freq) {
+void huffman::process_code(node *&cur_node, node *&root, code &code, buffered_writer &out, ui *freq) {
     for (ui i = code.size(); i-- > 0;) {
         if (!code.get(i)) {
             if (!cur_node->left) {
@@ -224,7 +223,7 @@ void process_code(node *&cur_node, node *&root, code &code, buffered_writer &out
     }
 }
 
-void decode(std::istream &input, std::ostream &output) {
+void huffman::decode(std::istream &input, std::ostream &output) {
     ui freq[256];
     for (ui &i : freq) {
         i = 0;
@@ -234,14 +233,14 @@ void decode(std::istream &input, std::ostream &output) {
     for (ui &i : freq) {
         i = read_number(in);
     }
-    if (!in.read_char(c)){
+    if (!in.read_char(c)) {
         throw std::invalid_argument("Encoded file corrupted");
     }
     ui last_bits = c;
     if (last_bits > 7) {
         throw std::invalid_argument("Encoded file corrupted");
     }
-    std::priority_queue<node *, std::vector<node *>, decltype(compare)> build(compare);
+    std::priority_queue<node *, std::vector<node *>, compare> build;
     build_huffman_tree(build, freq);
     node_wrapper root_wrapper = node_wrapper(build.top());
     node *root = root_wrapper.root;

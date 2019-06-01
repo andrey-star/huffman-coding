@@ -4,14 +4,14 @@
 #include <algorithm>
 #include <fstream>
 
-#include "huffman.cpp"
+#include "huffman.h"
 
 
 void encode_decode(std::istream &in, std::ostream &out) {
     std::ostringstream encoded;
-    encode(in, encoded);
+    huffman::encode(in, encoded);
     std::istringstream from_encoded(encoded.str());
-    decode(from_encoded, out);
+    huffman::decode(from_encoded, out);
 }
 
 
@@ -131,11 +131,11 @@ TEST(invalid, incorrect_decompress) {
     std::stringstream in4("0 0 1f 6 8");
     std::stringstream out;
 
-    EXPECT_ANY_THROW(decode(in0, out));
-    EXPECT_ANY_THROW(decode(in1, out));
-    EXPECT_ANY_THROW(decode(in2, out));
-    EXPECT_ANY_THROW(decode(in3, out));
-    EXPECT_ANY_THROW(decode(in4, out));
+    EXPECT_ANY_THROW(huffman::decode(in0, out));
+    EXPECT_ANY_THROW(huffman::decode(in1, out));
+    EXPECT_ANY_THROW(huffman::decode(in2, out));
+    EXPECT_ANY_THROW(huffman::decode(in3, out));
+    EXPECT_ANY_THROW(huffman::decode(in4, out));
 }
 
 TEST(invalid, random_incorrect_decompress) {
@@ -143,6 +143,6 @@ TEST(invalid, random_incorrect_decompress) {
         std::string s = random_string(100000);
         std::stringstream in(s);
         std::stringstream out;
-        EXPECT_ANY_THROW(decode(in, out));
+        EXPECT_ANY_THROW(huffman::decode(in, out));
     }
 }

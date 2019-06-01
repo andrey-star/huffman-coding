@@ -4,7 +4,7 @@
 #include <ostream>
 #include <buffered_io/CONSTANTS.h>
 
-class buffered_writer {
+struct buffered_writer {
 public:
     explicit buffered_writer(std::ostream &stream);
 

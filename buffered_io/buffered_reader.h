@@ -5,7 +5,7 @@
 
 #include <buffered_io/CONSTANTS.h>
 
-class buffered_reader {
+struct buffered_reader {
 public:
     explicit buffered_reader(std::istream &stream);
 

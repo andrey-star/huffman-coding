@@ -4,7 +4,7 @@
 #include <ctime>
 #include <iomanip>
 #include <vector>
-#include "huffman.cpp"
+#include "huffman.h"
 
 int main(int argc, char **argv) {
     if (argc != 4 || (std::string(argv[1]) != "-c" && std::string(argv[1]) != "-d")) {
@@ -27,10 +27,10 @@ int main(int argc, char **argv) {
         return -1;
     }
     if (cmd == "-c") {
-        encode(src, dest);
+        huffman::encode(src, dest);
     } else if (cmd == "-d"){
         try {
-            decode(src, dest);
+            huffman::decode(src, dest);
         } catch (std::logic_error &e) {
             std::cerr << e.what() << "\n";
             return -1;
