@@ -1,0 +1,220 @@
+
+#include <iostream>
+#include <map>
+#include <queue>
+
+#include <buffered_io/buffered_reader.h>
+#include <buffered_io/buffered_writer.h>
+
+using std::string;
+using std::cout;
+
+struct node {
+    unsigned char value;
+    int freq;
+    node *left, *right;
+
+    node(char value, int freq) {
+        left = nullptr;
+        right = nullptr;
+        this->value = value;
+        this->freq = freq;
+    }
+
+    bool isLeaf() {
+        return !(this->left || this->right);
+    }
+};
+
+struct code {
+    int size;
+    int value;
+
+    code() : size(0), value(0) {}
+
+    void add_one() {
+        value += (1 << size);
+        size++;
+    }
+
+    void add_zero() {
+        size++;
+    }
+};
+
+auto compare = [](node *l, node *r) {
+    return l->freq > r->freq;
+};
+
+void get_codes(struct node *root, const string &str, std::map<char, string> &codes) {
+    if (!root) {
+        return;
+    }
+    if (root->isLeaf()) {
+        codes[root->value] = str;
+    }
+    get_codes(root->left, str + "0", codes);
+    get_codes(root->right, str + "1", codes);
+}
+
+void build_huffman_tree(std::priority_queue<node *, std::vector<node *>, decltype(compare)> &build,
+                        int *freq) {
+    for (size_t i = 0; i < 256; i++) {
+        build.push(new node(i, freq[i]));
+    }
+    while (build.size() > 1) {
+        node *left = build.top();
+        build.pop();
+        node *right = build.top();
+        build.pop();
+        node *parent = new node('\0', left->freq + right->freq);
+        parent->left = left;
+        parent->right = right;
+        build.push(parent);
+    }
+}
+
+void gen_codes(int *freq, std::map<char, string> &codes) {
+    std::priority_queue<node *, std::vector<node *>, decltype(compare)> build(compare);
+    build_huffman_tree(build, freq);
+    get_codes(build.top(), "", codes);
+}
+
+void get_freq(buffered_reader &in, int *freq) {
+    unsigned char i;
+    while (in.read_char(i)) {
+        freq[i]++;
+    }
+}
+
+unsigned char get_encoded_char(const string &code) {
+    unsigned char encoded = 0;
+    int s = code.size();
+    for (int j = 0; j < s; j++) {
+        if (code[j] == '1') {
+            int add = (1 << (s - 1 - j));
+            encoded += add;
+        }
+    }
+    return encoded;
+}
+
+string encoded_char_to_binary(unsigned char c, int bits) {
+    string s;
+    for (int i = bits - 1; i >= 0; i--) {
+        s += std::to_string((c >> i) & 1);
+    }
+    return s;
+}
+
+string encoded_char_to_binary(unsigned char c) {
+    return encoded_char_to_binary(c, 8);
+
+}
+
+void encode(std::istream &input, std::ostream &output) {
+    int freq[256];
+    for (int &i : freq) {
+        i = 0;
+    }
+    std::map<char, string> codes;
+    buffered_reader in(input);
+    get_freq(in, freq);
+    in.reset();
+    gen_codes(freq, codes);
+    buffered_writer out(output);
+    for (int i : freq) {
+        string count = std::to_string(i);
+        out.write(count);
+        out.write_char(' ');
+    }
+    int last_bits = 0;
+    unsigned char c;
+    while (in.read_char(c)) {
+        std::cerr << codes[c] << "\n";
+        last_bits += codes[c].size();
+        if (last_bits >= 8) {
+            last_bits -= 8;
+        }
+    }
+    out.write_char(last_bits);
+    in.reset();
+    string code, left;
+    while (in.read_char(c)) {
+        code += codes[c];
+        if (code.size() > 8) {
+            left = code.substr(8, code.size());
+            code = code.substr(0, 8);
+            unsigned char encoded_char = get_encoded_char(code);
+            out.write_char(encoded_char);
+            code = left;
+        }
+    }
+    unsigned char encoded_char = get_encoded_char(code);
+    out.write_char(encoded_char);
+    in.reset();
+}
+
+node* process_binary_str(node *&cur_node, node *&root, string &s, buffered_writer &out) {
+    for (unsigned char i : s) {
+        if (i == '0') {
+            cur_node = cur_node->left;
+        } else {
+            cur_node = cur_node->right;
+        }
+        if (!cur_node->left && !cur_node->right) {
+            out.write_char(cur_node->value);
+            cur_node = root;
+        }
+    }
+    return cur_node;
+}
+
+void decode(std::istream &input, std::ostream &output) {
+    int freq[256];
+    for (auto &i : freq) {
+        i = 0;
+    }
+    buffered_reader in(input);
+    string a;
+    size_t cur = 0;
+    unsigned char c;
+    while (in.read_char(c)) {
+        if (c == ' ') {
+            int fr = std::stoi(a);
+            freq[cur] = fr;
+            cur++;
+            a = "";
+            if (cur == 256) {
+                break;
+            }
+        } else {
+            a += c;
+        }
+    }
+    in.read_char(c);
+    int last_bits = c;
+    std::priority_queue<node *, std::vector<node *>, decltype(compare)> build(compare);
+    build_huffman_tree(build, freq);
+    node *root = build.top();
+
+    buffered_writer out(output);
+    node *cur_node = root;
+    string last_str;
+    bool started = false;
+    while (in.read_char(c)) {
+        string s = encoded_char_to_binary(c);
+        if (started) {
+            process_binary_str(cur_node, root, last_str, out);
+        }
+        last_str = s;
+        started = true;
+    }
+    if (last_bits == 0) {
+        process_binary_str(cur_node, root, last_str, out);
+    } else {
+        last_str = encoded_char_to_binary(c, last_bits);
+        process_binary_str(cur_node, root, last_str, out);
+    }
+
+}
