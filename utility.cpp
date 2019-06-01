@@ -21,22 +21,24 @@ int main(int argc, char **argv) {
     dest.open(dest_path, std::ios::binary);
 
     std::clock_t start = clock();
+    int exit_code = 0;
     if (!src) {
         std::cerr << "Missing input file: " << src_path << "\n";
-        return -1;
-    }
-    if (cmd == "-c") {
+        exit_code = -1;
+    } else if (cmd == "-c") {
         huffman::encode(src, dest);
     } else if (cmd == "-d"){
         try {
             huffman::decode(src, dest);
         } catch (std::logic_error &e) {
             std::cerr << e.what() << ": " << src_path << "\n";
-            return -1;
+            exit_code = -1;
         }
     }
+    src.close();
+    dest.close();
     std::cerr << "Finished in: " << std::setprecision(3) << 1.0 * (clock() - start) / CLOCKS_PER_SEC << " s" << "\n";
-    return 0;
+    return exit_code;
 }
 
 

@@ -65,7 +65,7 @@ struct huffman::code {
         return value_;
     }
 
-    bool get(ui j) {
+    bool get(size_t j) {
         return static_cast<bool>((value_ >> j) & 1u);
     }
 
@@ -96,8 +96,8 @@ void huffman::get_codes(node *root, const code &cur_code, std::vector<code> &cod
     get_codes(root->right, right, codes);
 }
 
-void huffman::build_huffman_tree(std::priority_queue<node *, std::vector<huffman::node *>,
-        compare> &build, ui *freq) {
+huffman::node_wrapper huffman::build_huffman_tree(ui *freq) {
+    std::priority_queue<huffman::node *, std::vector<huffman::node *>, compare> build;
     for (unsigned char i = 0;; i++) {
         build.push(new huffman::node(i, freq[i]));
         if (i == 255) {
@@ -114,13 +114,12 @@ void huffman::build_huffman_tree(std::priority_queue<node *, std::vector<huffman
         parent->right = right;
         build.push(parent);
     }
+    return node_wrapper(build.top());
 }
 
 void huffman::gen_codes(ui *freq, std::vector<code> &codes) {
-    std::priority_queue<huffman::node *, std::vector<huffman::node *>, compare> build;
-    build_huffman_tree(build, freq);
-    node_wrapper root = node_wrapper(build.top());
-    get_codes(root.root, code(), codes);
+    node_wrapper root_wrapper = build_huffman_tree(freq);
+    get_codes(root_wrapper.root, code(), codes);
 }
 
 void get_freq(buffered_reader &in, ui *freq) {
@@ -158,15 +157,23 @@ void huffman::encode(std::istream &input, std::ostream &output) {
     for (ui &i : freq) {
         i = 0;
     }
-    std::vector<code> codes(ALPHABET_SIZE);
+
+    // calculate frequencies
     buffered_reader in(input);
     get_freq(in, freq);
-    gen_codes(freq, codes);
     in.reset();
+
+    // generate char codes
+    std::vector<code> codes(ALPHABET_SIZE);
+    gen_codes(freq, codes);
+
+    // print frequencies
     buffered_writer out(output);
     for (ui i : freq) {
         print_number(i, out);
     }
+
+    // print last byte's size
     ui last_bits = 0;
     unsigned char c;
     for (size_t i = 0; i < ALPHABET_SIZE; i++) {
@@ -174,6 +181,8 @@ void huffman::encode(std::istream &input, std::ostream &output) {
         last_bits &= 0b111u;
     }
     out.write_char(static_cast<const unsigned char>(last_bits));
+
+    // print encoded string
     code cur_code, rest;
     while (in.read_char(c)) {
         cur_code.add(codes[c]);
@@ -201,16 +210,10 @@ ui read_number(buffered_reader &in) {
 }
 
 void huffman::process_code(node *&cur_node, node *&root, code &code, buffered_writer &out, ui *freq) {
-    for (ui i = code.size(); i-- > 0;) {
+    for (size_t i = code.size(); i-- > 0;) {
         if (!code.get(i)) {
-            if (!cur_node->left) {
-                throw std::invalid_argument("Encoded file corrupted");
-            }
             cur_node = cur_node->left;
         } else {
-            if (!cur_node->right) {
-                throw std::invalid_argument("Encoded file corrupted");
-            }
             cur_node = cur_node->right;
         }
         if (cur_node->isLeaf()) {
@@ -226,11 +229,15 @@ void huffman::decode(std::istream &input, std::ostream &output) {
     for (ui &i : freq) {
         i = 0;
     }
+
+    // read frequencies
     buffered_reader in(input);
-    unsigned char c;
     for (ui &i : freq) {
         i = read_number(in);
     }
+
+    // read last byte's size
+    unsigned char c;
     if (!in.read_char(c)) {
         throw std::invalid_argument("Encoded file corrupted");
     }
@@ -238,33 +245,35 @@ void huffman::decode(std::istream &input, std::ostream &output) {
     if (last_bits > 7) {
         throw std::invalid_argument("Encoded file corrupted");
     }
-    std::priority_queue<node *, std::vector<node *>, compare> build;
-    build_huffman_tree(build, freq);
-    node_wrapper root_wrapper = node_wrapper(build.top());
+
+    // restore huffman tree
+    node_wrapper root_wrapper = build_huffman_tree(freq);
     node *root = root_wrapper.root;
 
-    buffered_writer out(output);
     ui res_freq[ALPHABET_SIZE];
     for (ui &i : res_freq) {
         i = 0;
     }
+
+    // decode the input
+    buffered_writer out(output);
     node *cur_node = root;
-    code last_code;
+    code cur_code, last_code;
     bool started = false;
     while (in.read_char(c)) {
-        code cod = code(BITS_IN_CHAR, c);
+        cur_code = code(BITS_IN_CHAR, c);
         if (started) {
             process_code(cur_node, root, last_code, out, res_freq);
         }
-        last_code = cod;
+        last_code = cur_code;
         started = true;
     }
-    if (last_bits == 0) {
-        process_code(cur_node, root, last_code, out, res_freq);
-    } else {
+    if (last_bits != 0) {
         last_code = code(last_bits, c);
-        process_code(cur_node, root, last_code, out, res_freq);
     }
+    process_code(cur_node, root, last_code, out, res_freq);
+
+    // check if frequencies match
     for (size_t i = 0; i < ALPHABET_SIZE; i++) {
         if (freq[i] != res_freq[i]) {
             throw std::invalid_argument("Encoded file corrupted");
