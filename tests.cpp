@@ -25,11 +25,8 @@ std::string encode_decode(std::string const &s) {
 std::string random_string(std::size_t size) {
     std::string s(size, 0);
     std::mt19937::result_type seed = time(nullptr);
-    auto rc = std::bind(std::uniform_int_distribution<int>(0, 255), std::mt19937(seed));
-    for (size_t i = 0; i < size; i++) {
-        int h = rc();
-        s[i] = h;
-    }
+    auto rng = std::bind(std::uniform_int_distribution<int>(0, 255), std::mt19937(seed));
+    std::generate(s.begin(), s.end(), rng);
     return s;
 }
 
@@ -100,13 +97,10 @@ TEST(correctness, long_string) {
 }
 
 
-//TEST(correctness, very_long_string) {
-//    std::string s = random_string(100000);
-//    cout << s << "\n";
-//    freopen("input.txt", "w", stdout);
-//    EXPECT_EQ(s, encode_decode(s));
-//    cout << "hm" << "\n";
-//}
+TEST(correctness, very_long_string) {
+    std::string s = random_string(100000);
+    EXPECT_EQ(s, encode_decode(s));
+}
 
 //TEST(correctness, encode) {
 //    std::ifstream source;
