@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
         try {
             huffman::decode(src, dest);
         } catch (std::logic_error &e) {
-            std::cerr << e.what() << "\n";
+            std::cerr << e.what() << ": " << src_path << "\n";
             return -1;
         }
     }
