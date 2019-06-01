@@ -7,8 +7,6 @@
 #include <buffered_io/buffered_reader.h>
 #include <buffered_io/buffered_writer.h>
 
-typedef uint32_t ui;
-
 struct huffman {
 public:
     static void encode(std::istream &input, std::ostream &output);

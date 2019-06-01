@@ -3,7 +3,7 @@
 
 #include <istream>
 
-#include <buffered_io/CONSTANTS.h>
+#include <constants.h>
 
 struct buffered_reader {
 public:

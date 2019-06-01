@@ -15,7 +15,7 @@ add_library(huffman-lib STATIC
         buffered_io/buffered_writer.h
         buffered_io/buffered_reader.cpp
         buffered_io/buffered_writer.cpp
-        buffered_io/CONSTANTS.h
+        constants.h
         huffman.h
         huffman.cpp)
 
@@ -28,7 +28,3 @@ target_link_libraries(compression-testing huffman-lib -lpthread)
 
 add_executable(compression-utility utility.cpp)
 target_link_libraries(compression-utility huffman-lib)
-
-
-
-

@@ -2,7 +2,7 @@
 #define HUFFMANCODING_BUFFERED_WRITER_H
 
 #include <ostream>
-#include <buffered_io/CONSTANTS.h>
+#include <constants.h>
 
 struct buffered_writer {
 public:
