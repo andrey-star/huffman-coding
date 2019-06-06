@@ -123,7 +123,7 @@ TEST(correctness, random_strings_test) {
     }
 }
 
-TEST(invalid, incorrect_decompress) {
+TEST(invalid, incorrect_decode) {
     std::stringstream in0("");
     std::stringstream in1("random ennn");
     std::stringstream in2("0 0 1 0 random ennn");
@@ -138,7 +138,7 @@ TEST(invalid, incorrect_decompress) {
     EXPECT_ANY_THROW(huffman::decode(in4, out));
 }
 
-TEST(invalid, random_incorrect_decompress) {
+TEST(invalid, random_incorrect_decode) {
     for (std::size_t i = 0; i < 50; ++i) {
         std::string s = random_string(100000);
         std::stringstream in(s);
