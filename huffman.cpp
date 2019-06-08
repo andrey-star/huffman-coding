@@ -3,28 +3,28 @@
 #include <queue>
 
 struct huffman::node {
-    unsigned char value;
+    uc value;
     ui freq;
     node *left, *right;
 
-    node(unsigned char value, ui freq) {
+    node(uc value, ui freq) {
         left = nullptr;
         right = nullptr;
         this->value = value;
         this->freq = freq;
     }
 
-    bool isLeaf() {
+    bool is_leaf() {
         return !(this->left || this->right);
     }
 };
 
-void huffman::deleteNode(huffman::node *node) {
+void huffman::delete_node(huffman::node *node) {
     if (!node) {
         return;
     }
-    deleteNode(node->left);
-    deleteNode(node->right);
+    delete_node(node->left);
+    delete_node(node->right);
     delete node;
 }
 
@@ -34,7 +34,7 @@ struct huffman::node_wrapper {
     explicit node_wrapper(huffman::node *root) : root(root) {}
 
     ~node_wrapper() {
-        deleteNode(root);
+        delete_node(root);
     }
 };
 
@@ -47,9 +47,8 @@ struct huffman::code {
     code(ui size_, ui value) : size_(size_), value_(value) {}
 
     void add_one() {
-        value_ <<= 1u;
+        add_zero();
         value_ += 1;
-        size_++;
     }
 
     void add_zero() {
@@ -84,7 +83,7 @@ struct huffman::compare {
 };
 
 void huffman::get_codes(node *root, const code &cur_code, std::vector<code> &codes) {
-    if (root->isLeaf()) {
+    if (root->is_leaf()) {
         codes[root->value] = cur_code;
         return;
     }
@@ -98,9 +97,9 @@ void huffman::get_codes(node *root, const code &cur_code, std::vector<code> &cod
 
 huffman::node_wrapper huffman::build_huffman_tree(ui *freq) {
     std::priority_queue<huffman::node *, std::vector<huffman::node *>, compare> build;
-    for (unsigned char i = 0;; i++) {
-        build.push(new huffman::node(i, freq[i]));
-        if (i == 255) {
+    for (uc c = 0;; c++) {
+        build.push(new huffman::node(c, freq[c]));
+        if (c == 255) {
             break;
         }
     }
@@ -123,13 +122,13 @@ void huffman::gen_codes(ui *freq, std::vector<code> &codes) {
 }
 
 void get_freq(buffered_reader &in, ui *freq) {
-    unsigned char i;
-    while (in.read_char(i)) {
-        freq[i]++;
+    uc c;
+    while (in.read_char(c)) {
+        freq[c]++;
     }
 }
 
-huffman::code huffman::print_full_chars_from_code(code c, buffered_writer &out) {
+huffman::code huffman::print_full_chars_from_code(code &c, buffered_writer &out) {
     ui value = c.value();
     ui size = c.size();
     for (ui i = 0; i < size; i++) {
@@ -139,7 +138,7 @@ huffman::code huffman::print_full_chars_from_code(code c, buffered_writer &out) 
             return {new_size, new_val};
         } else {
             ui byte = (value >> (size - BITS_IN_CHAR * (i + 1)));
-            auto ch = static_cast<unsigned char>(byte & 0xffu);
+            auto ch = static_cast<uc>(byte & 0xffu);
             out.write_char(ch);
         }
     }
@@ -148,7 +147,7 @@ huffman::code huffman::print_full_chars_from_code(code c, buffered_writer &out) 
 
 void print_number(ui n, buffered_writer &out) {
     for (ui i = 4; i-- > 0;) {
-        out.write_char(static_cast<const unsigned char>((n >> (BITS_IN_CHAR * i)) & 0xffu));
+        out.write_char(static_cast<uc>((n >> (BITS_IN_CHAR * i)) & 0xffu));
     }
 }
 
@@ -175,12 +174,12 @@ void huffman::encode(std::istream &input, std::ostream &output) {
 
     // print last byte's size
     ui last_bits = 0;
-    unsigned char c;
+    uc c;
     for (size_t i = 0; i < ALPHABET_SIZE; i++) {
         last_bits += (1ull * codes[i].size() * freq[i]) & 0b111u;
         last_bits &= 0b111u;
     }
-    out.write_char(static_cast<const unsigned char>(last_bits));
+    out.write_char(static_cast<uc>(last_bits));
 
     // print encoded string
     code cur_code, rest;
@@ -190,7 +189,7 @@ void huffman::encode(std::istream &input, std::ostream &output) {
         cur_code = rest;
     }
     if (cur_code.size() > 0) {
-        out.write_char(static_cast<const unsigned char>(cur_code.value()));
+        out.write_char(static_cast<uc>(cur_code.value()));
     }
     in.reset();
 }
@@ -198,7 +197,7 @@ void huffman::encode(std::istream &input, std::ostream &output) {
 
 ui read_number(buffered_reader &in) {
     ui res = 0;
-    unsigned char c;
+    uc c;
     for (ui i = 0; i < 4; i++) {
         if (!in.read_char(c)) {
             throw std::invalid_argument("Encoded file corrupted");
@@ -216,7 +215,7 @@ void huffman::process_code(node *&cur_node, node *&root, code &code, buffered_wr
         } else {
             cur_node = cur_node->right;
         }
-        if (cur_node->isLeaf()) {
+        if (cur_node->is_leaf()) {
             freq[cur_node->value]++;
             out.write_char(cur_node->value);
             cur_node = root;
@@ -237,7 +236,7 @@ void huffman::decode(std::istream &input, std::ostream &output) {
     }
 
     // read last byte's size
-    unsigned char c;
+    uc c;
     if (!in.read_char(c)) {
         throw std::invalid_argument("Encoded file corrupted");
     }

@@ -50,7 +50,7 @@ void get_codes(struct node *root, const string &str, std::map<char, string> &cod
     if (!root) {
         return;
     }
-    if (root->isLeaf()) {
+    if (root->is_leaf()) {
         codes[root->value] = str;
     }
     get_codes(root->left, str + "0", codes);

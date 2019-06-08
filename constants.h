@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 typedef uint32_t ui;
+typedef unsigned char uc;
 
 const std::size_t BUFFER_SIZE = 32768;
 const std::size_t ALPHABET_SIZE = 256;
